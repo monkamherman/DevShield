@@ -1,0 +1,84 @@
+name: DevShield CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    name: Repository foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify required foundation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f AGENTS.md
+          test -f README.md
+          test -f PROJECT_SPECIFICATION.md
+          test -f Makefile
+          test -f .gitignore
+          test -f .editorconfig
+          test -f apps/README.md
+          test -f security/README.md
+          test -f infrastructure/README.md
+          test -f deploy/README.md
+          test -f tests/README.md
+          test -f docs/README.md
+          test -f docs/04-cicd/README.md
+          test -f docs/04-cicd/ci-foundation.md
+
+      - name: Verify Makefile entry point
+        run: make help
+
+  quality:
+    name: Quality
+    needs: foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run lint command
+        run: make lint
+
+  test:
+    name: Tests
+    needs: foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run test command
+        run: make test
+
+  build:
+    name: Build
+    needs: foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run build validation
+        run: make build

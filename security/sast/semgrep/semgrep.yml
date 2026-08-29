@@ -1,0 +1,17 @@
+rules:
+  - id: devshield.javascript.no-eval
+    languages:
+      - javascript
+      - typescript
+    message: Avoid eval(); it can execute attacker-controlled code. Use a typed, explicit operation instead.
+    severity: ERROR
+    mode: search
+    pattern: eval(...)
+    metadata:
+      category: security
+      confidence: high
+      cwe: CWE-95
+      technology:
+        - javascript
+        - typescript
+      rationale: Direct dynamic code execution is an injection risk and is not required by the current application contract.

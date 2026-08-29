@@ -1,0 +1,84 @@
+name: DevShield Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sast:
+    name: SAST
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Semgrep
+        run: make security-sast
+
+      - name: Upload Semgrep evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-evidence-${{ github.run_id }}
+          path: reports/semgrep*
+          if-no-files-found: error
+          retention-days: 14
+
+  secrets:
+    name: Secret detection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Gitleaks
+        run: make security-secrets
+
+      - name: Upload redacted Gitleaks evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-evidence-${{ github.run_id }}
+          path: reports/gitleaks*
+          if-no-files-found: error
+          retention-days: 14
+
+  security-gate:
+    name: Security gate
+    needs: [sast, secrets]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Evaluate scanner results
+        env:
+          SAST_RESULT: ${{ needs.sast.result }}
+          SECRETS_RESULT: ${{ needs.secrets.result }}
+        run: |
+          set -euo pipefail
+          echo "Semgrep job result: ${SAST_RESULT}"
+          echo "Gitleaks job result: ${SECRETS_RESULT}"
+          if [ "$SAST_RESULT" = success ] && [ "$SECRETS_RESULT" = success ]; then
+            echo 'Security gate: PASS'
+          else
+            echo 'Security gate: FAIL'
+            echo 'A scanner finding or scanner/tool execution failure blocks the pipeline.'
+            exit 1
+          fi

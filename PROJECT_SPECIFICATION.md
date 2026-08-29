@@ -51,7 +51,7 @@ Production artifacts should be traceable to their source commit, repository, bui
 
 ## 9. CI/CD Strategy
 
-The future pipeline will progressively establish trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Exact stages and enforcement rules will be defined in later phases.
+The pipeline will progressively establish trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established a minimal GitHub Actions workflow with separate foundation, quality, test and build jobs. Phase 03 adds Semgrep and Gitleaks as the first source-security controls, with explicit evidence and a fail-closed gate. Because no application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Remaining security stages and enforcement rules will be defined in later phases.
 
 ## 10. Testing Strategy
 
@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 01 — Repository Skeleton.** The directory layout and initial documentation are established. No security control, production deployment, complex CI/CD workflow or infrastructure implementation is complete.
+**Phase 03 — SAST & Secret Detection.** The repository structure, CI foundation, Semgrep and Gitleaks workflows, evidence model and temporary security gate are established. No SCA, container, SBOM, signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.

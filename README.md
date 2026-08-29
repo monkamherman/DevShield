@@ -17,6 +17,6 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 01 — Repository Skeleton.** The repository currently provides the structure and architectural documentation needed for later work. No security scanner, deployment system, production infrastructure or complete CI/CD pipeline has been introduced yet.
+**Phase 03 — SAST & Secret Detection.** Semgrep and Gitleaks are integrated through a dedicated, fail-closed security workflow with isolated control fixtures and redacted evidence. No SCA, container, SBOM, signing, provenance, DAST, WAF, runtime security or deployment control has been introduced.
 
 See [PROJECT_SPECIFICATION.md](PROJECT_SPECIFICATION.md) for the initial architectural specification.
