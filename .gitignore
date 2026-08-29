@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and runtime output
+*.log
+logs/
+
+# Build and coverage output
+dist/
+build/
+coverage/
+.cache/
+.tmp/
+tmp/
+
+# Security and generated reports
+reports/
+*.sarif
+*.sbom
+*.spdx
+*.cdx.json
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Local tooling state
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+
