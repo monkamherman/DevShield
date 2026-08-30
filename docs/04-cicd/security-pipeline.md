@@ -1,13 +1,12 @@
 # Security pipeline
 
-Phase 03 introduced separate Semgrep and Gitleaks jobs with a centralized fail-closed gate. Phase 04 adds a third independent job for Trivy SCA; the gate now requires all three jobs to succeed.
+Phase 03 introduced Semgrep and Gitleaks, Phase 04 added Trivy SCA, Phase 05 added the container build/image scan, and Phase 06 adds Syft SBOM generation and artifact inventory. The container job builds one local image, scans it, generates its SBOM and correlates all evidence with the BuildKit-provided image digest.
 
 ```text
                  ┌── SAST (Semgrep) ───────┐
-Pull request ────┼── Secret detection ──────┼── Security gate
-                 └── SCA (Trivy) ───────────┘
+Pull request ────┼── Secret detection ──────┤
+                 ├── SCA (Trivy) ───────────┤── Security gate
+                 └── Container + SBOM ──────┘
 ```
 
-The workflow runs on pull requests and pushes to `main`, uses `contents: read`, and uploads machine-readable evidence for 14 days. Trivy runs only vulnerability scanning in filesystem mode. Its database/tool errors and blocking CRITICAL, HIGH or UNKNOWN findings fail the pipeline. MEDIUM and LOW findings remain visible without blocking according to the Phase 04 policy.
-
-No container scanning, SBOM generation, signing, provenance, OPA/Rego policy or deployment is included in this phase.
+The workflow runs on pull requests and pushes to `main`, uses `contents: read`, and uploads machine-readable evidence for 14 days. The container job performs `make security-container` followed by `make security-sbom`, avoiding a separate independent image build. Build, Trivy or Syft failures block the pipeline. No registry, signing, provenance, OPA/Rego or deployment is included.

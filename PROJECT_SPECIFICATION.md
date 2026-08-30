@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 05 — Container Security.** Docker image construction, Trivy image/configuration scanning, evidence generation and fail-closed CI integration are established. No SBOM, signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.
+**Phase 06 — SBOM & Artifact Inventory.** Docker image construction, Trivy image/configuration scanning, Syft CycloneDX inventory, BuildKit digest correlation and fail-closed CI integration are established. No signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.

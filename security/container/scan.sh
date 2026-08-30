@@ -29,7 +29,8 @@ const configFindings=(config.Results||[]).flatMap(r=>(r.Misconfigurations||[]).m
 const blocking=[...imageFindings,...configFindings].filter(v=>['CRITICAL','HIGH','UNKNOWN'].includes(v.severity));
 const toolFailure=Number(process.env.DEVSHIELD_IMAGE_EXIT)!==0||Number(process.env.DEVSHIELD_CONFIG_EXIT)!==0;
 const result=toolFailure?'TOOL_FAILURE':blocking.length?'SECURITY_FAILURE':'PASS';
+let imageDigest=null; try { imageDigest=JSON.parse(fs.readFileSync(process.env.DEVSHIELD_IMAGE_REPORT.replace('trivy-container-image.json','container-build-metadata.json'),'utf8')).image_digest; } catch (_) {}
 let imageId=null; try { const {execFileSync}=require('child_process'); imageId=execFileSync('docker',['image','inspect','--format','{{.Id}}',process.env.DEVSHIELD_IMAGE_REF],{encoding:'utf8'}).trim(); } catch (_) {}
-fs.writeFileSync(process.env.DEVSHIELD_METADATA,JSON.stringify({repository:process.env.GITHUB_REPOSITORY||'local',commit:process.env.DEVSHIELD_COMMIT,workflow:process.env.GITHUB_WORKFLOW||'local',workflow_run:process.env.GITHUB_RUN_ID||'local',image:process.env.DEVSHIELD_IMAGE_REF,image_id:imageId,image_digest:null,scanner:'Trivy',scanner_version:'0.73.0',scan_time:new Date().toISOString(),result,image_findings:imageFindings,configuration_findings:configFindings,blocking_findings:blocking},null,2)+'\n');
+fs.writeFileSync(process.env.DEVSHIELD_METADATA,JSON.stringify({repository:process.env.GITHUB_REPOSITORY||'local',commit:process.env.DEVSHIELD_COMMIT,workflow:process.env.GITHUB_WORKFLOW||'local',workflow_run:process.env.GITHUB_RUN_ID||'local',image:process.env.DEVSHIELD_IMAGE_REF,image_id:imageId,image_digest:imageDigest||null,scanner:'Trivy',scanner_version:'0.73.0',scan_time:new Date().toISOString(),result,image_findings:imageFindings,configuration_findings:configFindings,blocking_findings:blocking},null,2)+'\n');
 console.log(`Container security result: ${result}`); process.exit(result==='PASS'?0:1);
 NODE

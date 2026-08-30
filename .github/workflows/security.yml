@@ -81,12 +81,18 @@ jobs:
           persist-credentials: false
       - name: Build and scan container
         run: make security-container
+      - name: Generate and validate SBOM
+        run: make security-sbom
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-container-evidence-${{ github.run_id }}
-          path: reports/trivy-container*
+          path: |
+            reports/trivy-container*
+            reports/image-sbom.cdx.json
+            reports/artifact-inventory.json
+            reports/container-build-metadata.json
           if-no-files-found: error
           retention-days: 14
 
