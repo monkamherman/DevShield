@@ -1,3 +1,3 @@
-# Security
+# Security controls
 
-This area will contain version-controlled security configurations, rules and supporting assets. The subdirectories reserve boundaries for SAST, secrets, SCA, containers, SBOM, signing, provenance, policies, DAST, WAF and runtime security. No security tooling is configured in Phase 01.
+The repository currently contains the Phase 03 Semgrep and Gitleaks controls and the Phase 04 Trivy SCA control. Each produces evidence and is evaluated by the centralized gate in `security/run.sh`. Container security, SBOM, signing, provenance, DAST, WAF and runtime security remain reserved for later phases.

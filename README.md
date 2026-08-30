@@ -17,6 +17,6 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 03 — SAST & Secret Detection.** Semgrep and Gitleaks are integrated through a dedicated, fail-closed security workflow with isolated control fixtures and redacted evidence. No SCA, container, SBOM, signing, provenance, DAST, WAF, runtime security or deployment control has been introduced.
+**Phase 05 — Container Security.** Semgrep, Gitleaks, Trivy SCA and container image security are integrated through a centralized, fail-closed security workflow with Docker build evidence and non-root validation. SBOM, signing, provenance, DAST, WAF, runtime security and deployment remain future phases.
 
 See [PROJECT_SPECIFICATION.md](PROJECT_SPECIFICATION.md) for the initial architectural specification.

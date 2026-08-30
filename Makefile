@@ -1,7 +1,7 @@
-.PHONY: help test lint build clean security-sast security-secrets security
+.PHONY: help test lint build clean security-sast security-secrets security-sca container-build security-container security
 
 help:
-	@printf '%s\n' 'Available targets:' '  help            Show this message' '  test            Report that tests are not configured yet' '  lint            Report that linting is not configured yet' '  build           Report that no application build is configured yet' '  clean           Report that no generated files exist' '  security-sast   Run the pinned Semgrep scan' '  security-secrets Run the pinned Gitleaks scan' '  security         Run both scanners and the Phase 03 gate'
+	@printf '%s\n' 'Available targets:' '  help            Show this message' '  test            Report that tests are not configured yet' '  lint            Report that linting is not configured yet' '  build           Report that no application build is configured yet' '  clean           Report that no generated files exist' '  security-sast   Run the pinned Semgrep scan' '  security-secrets Run the pinned Gitleaks scan' '  security-sca    Run the pinned Trivy dependency scan' '  container-build Build the deterministic container image' '  security-container Build and scan the container image' '  security         Run all scanners and the security gate'
 
 test:
 	@echo 'Tests are not configured yet; no application or test framework exists.'
@@ -20,6 +20,16 @@ security-sast:
 
 security-secrets:
 	@security/secrets/gitleaks/run.sh
+
+security-sca:
+	@security/sca/trivy/run.sh
+
+container-build:
+	@security/container/build.sh
+
+security-container:
+	@security/container/build.sh
+	@security/container/scan.sh
 
 security:
 	@security/run.sh

@@ -1,24 +1,13 @@
-# Security Pipeline
+# Security pipeline
 
-Phase 03 adds a dedicated security workflow alongside the foundational CI workflow:
+Phase 03 introduced separate Semgrep and Gitleaks jobs with a centralized fail-closed gate. Phase 04 adds a third independent job for Trivy SCA; the gate now requires all three jobs to succeed.
 
 ```text
-Pull Request / Push
-        │
-        ├── ci.yml
-        │     ├── Foundation
-        │     ├── Quality
-        │     ├── Tests
-        │     └── Build
-        │
-        └── security.yml
-              ├── SAST (Semgrep)
-              ├── Secret Detection (Gitleaks)
-              └── Security Gate
+                 ┌── SAST (Semgrep) ───────┐
+Pull request ────┼── Secret detection ──────┼── Security gate
+                 └── SCA (Trivy) ───────────┘
 ```
 
-The two scanner jobs execute independently and produce JSON evidence. The gate runs even when a scanner job fails, then blocks unless both jobs succeeded. A finding and a scanner/tool failure are both blocking, while the scanner wrappers classify them separately as `SECURITY_FAILURE` and `TOOL_FAILURE` in local metadata and output.
+The workflow runs on pull requests and pushes to `main`, uses `contents: read`, and uploads machine-readable evidence for 14 days. Trivy runs only vulnerability scanning in filesystem mode. Its database/tool errors and blocking CRITICAL, HIGH or UNKNOWN findings fail the pipeline. MEDIUM and LOW findings remain visible without blocking according to the Phase 04 policy.
 
-The workflow uses `contents: read`, does not use repository secrets, disables checkout credential persistence and retains evidence for 14 days. Gitleaks reports are redacted because secret evidence is sensitive.
-
-The current repository has no application code or package manager, so no dependency installation, linting, testing or build setup is part of this phase. Future security stages will be added progressively without changing this gate’s fail-closed contract.
+No container scanning, SBOM generation, signing, provenance, OPA/Rego policy or deployment is included in this phase.

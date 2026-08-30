@@ -22,6 +22,7 @@ tmp/
 
 # Security and generated reports
 reports/
+.trivy-cache/
 *.sarif
 *.sbom
 *.spdx

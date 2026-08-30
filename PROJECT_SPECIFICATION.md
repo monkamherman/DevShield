@@ -51,7 +51,7 @@ Production artifacts should be traceable to their source commit, repository, bui
 
 ## 9. CI/CD Strategy
 
-The pipeline will progressively establish trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established a minimal GitHub Actions workflow with separate foundation, quality, test and build jobs. Phase 03 adds Semgrep and Gitleaks as the first source-security controls, with explicit evidence and a fail-closed gate. Because no application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Remaining security stages and enforcement rules will be defined in later phases.
+The pipeline will progressively establish trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established a minimal GitHub Actions workflow with separate foundation, quality, test and build jobs. Phase 03 added Semgrep and Gitleaks as the first source-security controls. Phase 04 added Trivy SCA as the dependency-security control. Phase 05 adds container build and image security, with explicit evidence and a fail-closed gate. Because no application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Remaining security stages and enforcement rules will be defined in later phases.
 
 ## 10. Testing Strategy
 
@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 03 — SAST & Secret Detection.** The repository structure, CI foundation, Semgrep and Gitleaks workflows, evidence model and temporary security gate are established. No SCA, container, SBOM, signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.
+**Phase 05 — Container Security.** Docker image construction, Trivy image/configuration scanning, evidence generation and fail-closed CI integration are established. No SBOM, signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.

@@ -17,16 +17,12 @@ jobs:
     name: SAST
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
+        with: { persist-credentials: false }
       - name: Run Semgrep
         run: make security-sast
-
       - name: Upload Semgrep evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -40,16 +36,12 @@ jobs:
     name: Secret detection
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
+        with: { persist-credentials: false }
       - name: Run Gitleaks
         run: make security-secrets
-
       - name: Upload redacted Gitleaks evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,26 +51,68 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  sca:
+    name: SCA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Run Trivy SCA
+        run: make security-sca
+      - name: Upload Trivy SCA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sca-evidence-${{ github.run_id }}
+          path: reports/trivy-sca*
+          if-no-files-found: error
+          retention-days: 14
+
+  container:
+    name: Container security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build and scan container
+        run: make security-container
+      - name: Upload container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: reports/trivy-container*
+          if-no-files-found: error
+          retention-days: 14
+
   security-gate:
     name: Security gate
-    needs: [sast, secrets]
+    needs: [sast, secrets, sca, container]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-
     steps:
       - name: Evaluate scanner results
         env:
           SAST_RESULT: ${{ needs.sast.result }}
           SECRETS_RESULT: ${{ needs.secrets.result }}
+          SCA_RESULT: ${{ needs.sca.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
           set -euo pipefail
           echo "Semgrep job result: ${SAST_RESULT}"
           echo "Gitleaks job result: ${SECRETS_RESULT}"
-          if [ "$SAST_RESULT" = success ] && [ "$SECRETS_RESULT" = success ]; then
+          echo "Trivy SCA job result: ${SCA_RESULT}"
+          echo "Container job result: ${CONTAINER_RESULT}"
+          if [ "$SAST_RESULT" = success ] && [ "$SECRETS_RESULT" = success ] && [ "$SCA_RESULT" = success ] && [ "$CONTAINER_RESULT" = success ]; then
             echo 'Security gate: PASS'
           else
             echo 'Security gate: FAIL'
-            echo 'A scanner finding or scanner/tool execution failure blocks the pipeline.'
+            echo 'A finding or scanner/tool execution failure blocks the pipeline.'
             exit 1
           fi
