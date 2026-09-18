@@ -9,7 +9,7 @@ Source → Development → CI/CD → Security evidence → Signed artifact
        → Policy verification → Deployment → Runtime protection → Observability
 ```
 
-The planned security layers include SAST, secret detection, dependency and container scanning, SBOM generation, signing, provenance, policy as code, DAST, WAF and runtime security. These controls are planned, not implemented in this repository skeleton.
+The platform is being implemented incrementally. SAST, secret detection, dependency and container scanning, SBOM generation, artifact inventory and secure registry integration are currently implemented. Signing, provenance, policy as code, DAST, WAF and runtime security remain planned.
 
 ## Incremental implementation
 
@@ -17,7 +17,7 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 07 — Secure Registry.** Semgrep, Gitleaks, Trivy SCA, container security and Syft CycloneDX inventory feed a centralized fail-closed gate. Approved images can be pushed to a pinned, project-scoped Harbor registry using `sha-<commit>` tags and digest identity. Local Harbor integration is explicit and optional; signing, provenance, OPA and deployment remain future phases.
+**Phase 07 — Secure Registry.** Semgrep, Gitleaks, Trivy SCA, container security and Syft CycloneDX inventory feed a centralized fail-closed gate. Approved images can be pushed to a pinned, project-scoped Harbor registry using `sha-<commit>` tags and digest identity. Local Harbor integration is explicit and optional; signing, provenance, OPA, deployment and runtime controls remain future phases.
 
 Use `make registry-up` for the pinned official Harbor installer model, then see [registry security](docs/02-security/registry.md) and [CI integration](docs/04-cicd/registry-integration.md). Harbor is not treated as cryptographic trust until Phase 08 adds Cosign.
 

@@ -13,7 +13,7 @@ DevShield aims to establish a verifiable chain of trust from source code to prod
 
 ## 3. Scope
 
-The repository will eventually contain application code, security controls, infrastructure definitions, deployment models, tests and documentation. This phase establishes only the repository skeleton and architectural baseline.
+The repository contains the architectural baseline, security controls, evidence producers, infrastructure integration points, tests and documentation. Application implementation and deployment environments will be added incrementally in later phases.
 
 ## 4. High-Level Architecture
 
@@ -35,7 +35,7 @@ DAST, WAF, runtime security and observability
 
 ## 5. Security Layers
 
-The planned layers are SAST, secret detection, software composition analysis, container security, SBOM, signing, provenance, policy as code, DAST, WAF and runtime security. Their configurations and rules will be introduced in later phases.
+The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory and secure registry integration. Signing, provenance, policy as code, DAST, WAF and runtime security remain planned for later phases.
 
 ## 6. Target Technology Stack
 
@@ -51,7 +51,7 @@ Production artifacts should be traceable to their source commit, repository, bui
 
 ## 9. CI/CD Strategy
 
-The pipeline will progressively establish trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established a minimal GitHub Actions workflow with separate foundation, quality, test and build jobs. Phase 03 added Semgrep and Gitleaks as the first source-security controls. Phase 04 added Trivy SCA as the dependency-security control. Phase 05 adds container build and image security, with explicit evidence and a fail-closed gate. Because no application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Remaining security stages and enforcement rules will be defined in later phases.
+The pipeline progressively establishes trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established the CI foundation; Phase 03 added Semgrep and Gitleaks; Phase 04 added Trivy SCA; Phase 05 added container build and image security; Phase 06 added Syft SBOM generation and artifact inventory; and Phase 07 added Harbor integration. Because no production application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Signing, provenance, policy enforcement, deployment and runtime stages remain future work.
 
 ## 10. Testing Strategy
 
@@ -63,6 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 06 — SBOM & Artifact Inventory.** Docker image construction, Trivy image/configuration scanning, Syft CycloneDX inventory, BuildKit digest correlation and fail-closed CI integration are established.
-
-**Phase 07 — Secure Registry & Artifact Repository.** Harbor `2.14.4` is the approved private registry model. Images are pushed only after the existing gate, with project RBAC, TLS-oriented local configuration, protected tags, retention guidance and explicit registry failure semantics. No signing, provenance, OPA, DAST, WAF, runtime security or production deployment is complete.
+**Phase 07 — Secure Registry & Artifact Repository.** Docker image construction, Trivy image/configuration scanning, Syft CycloneDX inventory, BuildKit digest correlation and Harbor `2.14.4` integration are established. Images are pushed only after the existing gate, with project RBAC, TLS-oriented local configuration, protected tags, retention guidance and explicit registry failure semantics. Local and CI integration are implemented, but full operational validation requires Docker and a provisioned Harbor instance. No signing, provenance, OPA, DAST, WAF, runtime security or production deployment is complete.

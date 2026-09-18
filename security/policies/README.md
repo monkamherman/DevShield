@@ -1,3 +1,3 @@
 # Security Policies
 
-Phase 03 uses the deterministic gate in `security/run.sh` and the security workflow. OPA/Rego is intentionally deferred. The current gate treats a Semgrep or Gitleaks finding and any scanner execution error as blocking.
+The current pipeline uses the deterministic gate in `security/run.sh` and the security workflow. Semgrep, Gitleaks, Trivy SCA, container scanning and SBOM validation are blocking controls; findings and scanner or tooling errors fail the gate. Harbor publication is allowed only after that gate succeeds. OPA/Rego is intentionally deferred.
