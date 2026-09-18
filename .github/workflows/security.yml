@@ -263,3 +263,42 @@ jobs:
             reports/policy-decision-evidence.json
           if-no-files-found: error
           retention-days: 14
+
+  authorization:
+    name: Deployment authorization
+    needs: [policy]
+    if: ${{ vars.DEVSHIELD_DEPLOYMENT_ENABLED == 'true' && github.event_name == 'push' && needs.policy.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download policy evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: opa-policy-evidence-${{ github.run_id }}
+          path: reports
+      - name: Install pinned OPA
+        run: make opa-install
+      - name: Authorize the exact policy artifact
+        env:
+          DEPLOYMENT_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+        run: |
+          set -euo pipefail
+          reference="$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.artifact.reference || "")' reports/policy-input.json)"
+          test -n "$reference"
+          security/deployment/authorize.sh \
+            --artifact "$reference" \
+            --environment "$DEPLOYMENT_ENVIRONMENT" \
+            --policy-input reports/policy-input.json \
+            --output reports/deployment-authorization-evidence.json
+      - name: Upload deployment authorization evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-authorization-${{ github.run_id }}
+          path: reports/deployment-authorization-evidence.json
+          if-no-files-found: error
+          retention-days: 14

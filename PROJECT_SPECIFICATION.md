@@ -35,7 +35,7 @@ DAST, WAF, runtime security and observability
 
 ## 5. Security Layers
 
-The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration, Cosign artifact signing/verification and OPA policy decisions. Provenance is consumed when available; DAST, WAF and runtime security remain planned for later phases.
+The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration, Cosign artifact signing/verification, OPA policy decisions and digest-bound deployment authorization. Provenance is consumed when available; DAST, WAF, runtime security and a concrete deployment runtime remain planned for later phases.
 
 ## 6. Target Technology Stack
 
@@ -47,11 +47,11 @@ Development is intended for fast feedback, staging for broader validation and pr
 
 ## 8. Supply-Chain Trust Model
 
-Production artifacts should be traceable to their source commit, repository, build workflow, builder, timestamp, digest, SBOM, scan evidence and signature. Deployment policy should verify the required evidence before promotion.
+Production artifacts should be traceable to their source commit, repository, build workflow, builder, timestamp, digest, SBOM, scan evidence and signature. Deployment authorization verifies the required evidence immediately before promotion and binds the decision to the exact digest and environment.
 
 ## 9. CI/CD Strategy
 
-The pipeline progressively establishes trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established the CI foundation; Phase 03 added Semgrep and Gitleaks; Phase 04 added Trivy SCA; Phase 05 added container build and image security; Phase 06 added Syft SBOM generation and artifact inventory; Phase 07 added Harbor integration; Phase 08 added Cosign signing and verification; and Phase 09 added OPA policy decisions. Because no production application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Deployment and runtime stages remain future work.
+The pipeline progressively establishes trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification and deployment authorization. Phase 02 established the CI foundation; Phase 03 added Semgrep and Gitleaks; Phase 04 added Trivy SCA; Phase 05 added container build and image security; Phase 06 added Syft SBOM generation and artifact inventory; Phase 07 added Harbor integration; Phase 08 added Cosign signing and verification; Phase 09 added OPA policy decisions; and Phase 10 added the digest-bound authorization contract. Because no production application or deployment runtime exists yet, the application-aware Make targets report explicit limitations without pretending that deployment is operational. Runtime deployment remains future work.
 
 ## 10. Testing Strategy
 
@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 09 — Policy as Code.** OPA `v1.20.2` evaluates normalized scanner, SBOM, registry, signature and optional provenance evidence. The versioned policy is fail-closed, environment-specific and emits decision evidence with policy/input hashes. Full operational validation still requires the pinned OPA binary and the existing Docker/Harbor/Cosign environment. No DAST, WAF, runtime security or production deployment is complete.
+**Phase 10 — Deployment Trust Enforcement.** OPA `v1.20.2` evaluates normalized scanner, SBOM, registry, signature and optional provenance evidence, and `security/deployment/authorize.sh` converts only a digest-bound `ALLOW` into authorization. Full operational validation still requires the existing Docker/Harbor/Cosign environment; no concrete production deployment runtime, DAST, WAF or runtime security is complete.
