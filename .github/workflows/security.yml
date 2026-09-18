@@ -302,3 +302,34 @@ jobs:
           path: reports/deployment-authorization-evidence.json
           if-no-files-found: error
           retention-days: 14
+
+  dast:
+    name: OWASP ZAP baseline DAST
+    needs: [authorization]
+    if: ${{ vars.DEVSHIELD_DAST_ENABLED == 'true' && needs.authorization.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run the authorized staging target baseline scan
+        env:
+          TARGET_URL: ${{ vars.DEVSHIELD_DAST_TARGET_URL }}
+          DAST_ENVIRONMENT: ${{ vars.DEVSHIELD_DAST_ENVIRONMENT || 'staging' }}
+          DAST_ALLOWED_HOSTS: ${{ vars.DEVSHIELD_DAST_ALLOWED_HOSTS }}
+          DAST_ARTIFACT: ${{ vars.DEVSHIELD_DAST_ARTIFACT }}
+        run: |
+          set -euo pipefail
+          test -n "$TARGET_URL"
+          test -n "$DAST_ALLOWED_HOSTS"
+          make dast-run
+      - name: Upload DAST reports and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-evidence-${{ github.run_id }}
+          path: reports/dast
+          if-no-files-found: error
+          retention-days: 14

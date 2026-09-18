@@ -35,7 +35,7 @@ DAST, WAF, runtime security and observability
 
 ## 5. Security Layers
 
-The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration, Cosign artifact signing/verification, OPA policy decisions and digest-bound deployment authorization. Provenance is consumed when available; DAST, WAF, runtime security and a concrete deployment runtime remain planned for later phases.
+The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration, Cosign artifact signing/verification, OPA policy decisions, digest-bound deployment authorization and an OWASP ZAP baseline DAST integration. Provenance is consumed when available; WAF, runtime security and a concrete deployment runtime remain planned for later phases.
 
 ## 6. Target Technology Stack
 
@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 10 — Deployment Trust Enforcement.** OPA `v1.20.2` evaluates normalized scanner, SBOM, registry, signature and optional provenance evidence, and `security/deployment/authorize.sh` converts only a digest-bound `ALLOW` into authorization. Full operational validation still requires the existing Docker/Harbor/Cosign environment; no concrete production deployment runtime, DAST, WAF or runtime security is complete.
+**Phase 11 — Dynamic Application Security Testing.** OPA `v1.20.2` and digest-bound authorization remain in place, while ZAP `2.15.0` adds an explicit-target baseline scan with machine-readable evidence. Full application E2E validation still requires a deployed test application; no production runtime, WAF or runtime security is complete.

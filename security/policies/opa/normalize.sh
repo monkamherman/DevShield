@@ -51,6 +51,7 @@ const build = read('container-build-metadata.json');
 const registry = read('registry-push-evidence.json');
 const signature = read('cosign-signing-evidence.json');
 const provenance = read('provenance.json');
+const dast = read('dast-evidence.json');
 const first = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
 const digest = first(registry.data?.digest, inventory.data?.artifact?.digest, build.data?.image_digest, signature.data?.digest, null);
 const repository = first(registry.data?.registry && registry.data?.repository ? `${registry.data.registry}/${registry.data.repository}` : null, inventory.data?.artifact?.reference, build.data?.image, 'unknown');
@@ -70,12 +71,13 @@ const input = {
     secrets: {status: secrets.data?.result || 'MISSING'},
     sca: {status: sca.data?.result || 'MISSING', ...Object.fromEntries(['CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN'].map(s => [s.toLowerCase(), count(sca.data?.vulnerability_counts, s)]))},
     container: {status: container.data?.result || 'MISSING', ...Object.fromEntries(['CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN'].map(s => [s.toLowerCase(), containerCounts[s]]))},
+    dast: {present: Boolean(dast.data), status: dast.data?.status || 'MISSING', high: Number(dast.data?.findings?.high || 0), medium: Number(dast.data?.findings?.medium || 0), low: Number(dast.data?.findings?.low || 0), informational: Number(dast.data?.findings?.informational || 0)},
   },
   sbom: {present: inventory.data?.result === 'PASS', format: inventory.data?.sbom?.format || null, digest: inventory.data?.artifact?.digest || null},
   registry: {name: registry.data?.registry ? 'harbor' : 'local', host: registry.data?.registry || null, repository: registry.data?.repository || null, trusted: registry.data?.result === 'PASS' && csv(process.env.DEVSHIELD_TRUSTED_REGISTRY).includes(registry.data.registry), digest: registry.data?.digest || null},
   signature: {signed: signature.data?.signature_status === 'SIGNED', verified: signature.data?.verified === true, digest: signature.data?.digest || null, signer: signature.data?.signer_identity || null},
   provenance: {present: provenance.data?.present === true, trusted: provenance.data?.trusted === true, digest: provenance.data?.digest || null, source_commit: provenance.data?.source_commit || null},
-  evidence: {semgrep: semgrep.path, secrets: secrets.path, sca: sca.path, container: container.path, sbom: inventory.path, registry: registry.path, signature: signature.path},
+  evidence: {semgrep: semgrep.path, secrets: secrets.path, sca: sca.path, container: container.path, sbom: inventory.path, registry: registry.path, signature: signature.path, dast: dast.path},
 };
 fs.mkdirSync(path.dirname(output), {recursive: true});
 fs.writeFileSync(output, `${JSON.stringify(input, null, 2)}\n`);
