@@ -9,7 +9,7 @@ Source → Development → CI/CD → Security evidence → Signed artifact
        → Policy verification → Deployment → Runtime protection → Observability
 ```
 
-The platform is being implemented incrementally. SAST, secret detection, dependency and container scanning, SBOM generation, artifact inventory, secure registry integration, signing/verification, OPA policy decisions, digest-bound deployment authorization, ZAP DAST and the Coraza/OWASP CRS WAF integration are currently implemented. Provenance, runtime security and a concrete deployment runtime remain planned.
+The platform is being implemented incrementally. SAST, secret detection, dependency and container scanning, SBOM generation, artifact inventory, secure registry integration, signing/verification, OPA policy decisions, digest-bound deployment authorization, ZAP DAST, Coraza/OWASP CRS WAF and a Docker-oriented Falco runtime-security integration are currently implemented. Provenance, observability and a concrete production runtime remain planned.
 
 ## Incremental implementation
 
@@ -17,7 +17,7 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 12 — Web Application Firewall.** The official Coraza CRS reverse-proxy image is version-pinned, configuration-validated and exposed through detection/blocking lifecycle commands. Deterministic configuration/evidence tests pass; full traffic validation requires Docker and a deployed application fixture.
+**Phase 13 — Runtime Security.** Falco `0.44.1` with Modern eBPF and versioned DevShield rules is integrated for Docker-oriented detection and event evidence. Static rules/evidence tests pass; live syscall validation requires Docker, Linux kernel support and the documented host permissions.
 
 Use `make registry-up` for the pinned official Harbor installer model and see [registry security](docs/02-security/registry.md), [signing](docs/02-security/signing.md), [policy as code](docs/02-security/policy-as-code.md) and [CI signing integration](docs/04-cicd/signing-integration.md).
 
