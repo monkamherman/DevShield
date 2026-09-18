@@ -333,3 +333,28 @@ jobs:
           path: reports/dast
           if-no-files-found: error
           retention-days: 14
+
+  waf-validation:
+    name: Coraza CRS WAF validation
+    needs: [dast]
+    if: ${{ vars.DEVSHIELD_WAF_ENABLED == 'true' && needs.dast.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Show pinned WAF versions
+        run: make waf-version
+      - name: Validate staging WAF configuration
+        env:
+          TARGET_UPSTREAM: ${{ vars.DEVSHIELD_WAF_UPSTREAM }}
+          WAF_ENVIRONMENT: staging
+          WAF_MODE: blocking
+        run: |
+          set -euo pipefail
+          test -n "$TARGET_UPSTREAM"
+          make waf-validate
+      - name: Run WAF validation suite
+        run: make waf-test
