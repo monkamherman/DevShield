@@ -1,6 +1,6 @@
 # Harbor registry security
 
-Harbor is DevShield's controlled artifact repository. It stores and distributes images, enforces project access, retains metadata and can rescan stored artifacts with its native Trivy adapter. It does not establish source trust, cryptographic authenticity or production approval yet.
+Harbor is DevShield's controlled artifact repository. It stores and distributes images, enforces project access, retains metadata and can rescan stored artifacts with its native Trivy adapter. Harbor presence alone does not establish source trust or cryptographic authenticity; Phase 08 adds Cosign signatures to the exact Harbor digest.
 
 The trust boundary is:
 
@@ -26,4 +26,4 @@ The same image is built and scanned before push. Harbor's Trivy scan is compleme
 
 Invalid credentials are a security failure, denied RBAC operations are expected denials, and an unavailable Harbor is an infrastructure failure. None is converted into PASS. Retention must keep release artifacts and their metadata; development cleanup must not remove artifacts needed to reproduce a release. Backups eventually need registry storage, Harbor database, configuration, certificates and metadata.
 
-Phase 07 does not add signing, provenance, OPA or deployment authorization. Cosign will attach identity to the same image digest in Phase 08.
+Phase 08 attaches Cosign identity to the same image digest. Provenance, OPA and deployment authorization remain future phases.

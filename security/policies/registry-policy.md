@@ -9,4 +9,4 @@
 - Harbor outage or authentication failure is `INFRASTRUCTURE_FAILURE`; command/scanner malfunction is `TOOL_FAILURE`; vulnerability or digest-integrity failure is `SECURITY_FAILURE`.
 - Retention must preserve release tags and digests needed for reproducibility. Development cleanup may remove temporary tags only after an explicit tested policy.
 - Credentials are supplied through environment/CI secrets and never logged or committed. TLS verification remains enabled.
-- Cosign signatures, provenance and production deployment authorization are intentionally deferred to later phases.
+- Cosign signatures are added in Phase 08 and must verify against the exact digest and approved identity. Provenance and production deployment authorization are intentionally deferred to later phases.
