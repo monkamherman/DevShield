@@ -1,7 +1,7 @@
-.PHONY: help test lint build clean security-sast security-secrets security-sca container-build security-container sbom sbom-validate artifact-inventory security-sbom registry-config registry-up registry-down registry-status registry-login registry-test registry-push registry-pull security-registry cosign-version cosign-keygen security-sign security-verify-signature security-inspect-signature security-signing test-signing security
+.PHONY: help test lint build clean security-sast security-secrets security-sca container-build security-container sbom sbom-validate artifact-inventory security-sbom registry-config registry-up registry-down registry-status registry-login registry-test registry-push registry-pull security-registry cosign-version cosign-keygen security-sign security-verify-signature security-inspect-signature security-signing test-signing opa-install opa-version policy-input policy-test policy-check security-policy security
 
 help:
-	@printf '%s\n' 'Available targets:' '  help            Show this message' '  test            Report that tests are not configured yet' '  lint            Report that linting is not configured yet' '  build           Report that no application build is configured yet' '  clean           Report that no generated files exist' '  security-sast   Run the pinned Semgrep scan' '  security-secrets Run the pinned Gitleaks scan' '  security-sca    Run the pinned Trivy dependency scan' '  container-build Build the deterministic container image' '  security-container Build and scan the container image' '  sbom            Generate the image CycloneDX SBOM' '  sbom-validate   Validate the generated SBOM' '  artifact-inventory Generate the artifact inventory' '  security-sbom   Generate, validate and inventory the image SBOM' '  cosign-version  Verify the pinned Cosign version' '  cosign-keygen   Generate a local Cosign key pair' '  security-sign   Sign the gated Harbor digest' '  security-verify-signature Verify the expected Cosign identity' '  security-inspect-signature Inspect stored Cosign signatures' '  security-signing Run gate, Harbor push, signing and verification' '  test-signing    Run deterministic signing policy tests' '  security         Run all scanners and the security gate'
+	@printf '%s\n' 'Available targets:' '  help            Show this message' '  test            Report that tests are not configured yet' '  lint            Report that linting is not configured yet' '  build           Report that no application build is configured yet' '  clean           Report that no generated files exist' '  security-sast   Run the pinned Semgrep scan' '  security-secrets Run the pinned Gitleaks scan' '  security-sca    Run the pinned Trivy dependency scan' '  container-build Build the deterministic container image' '  security-container Build and scan the container image' '  sbom            Generate the image CycloneDX SBOM' '  sbom-validate   Validate the generated SBOM' '  artifact-inventory Generate the artifact inventory' '  security-sbom   Generate, validate and inventory the image SBOM' '  cosign-version  Verify the pinned Cosign version' '  cosign-keygen   Generate a local Cosign key pair' '  security-sign   Sign the gated Harbor digest' '  security-verify-signature Verify the expected Cosign identity' '  security-inspect-signature Inspect stored Cosign signatures' '  security-signing Run gate, Harbor push, signing and verification' '  test-signing    Run deterministic signing policy tests' '  opa-install     Install and checksum the pinned OPA binary' '  opa-version     Verify the pinned OPA version' '  policy-input    Normalize existing evidence for OPA' '  policy-test     Run OPA/Rego tests' '  policy-check    Evaluate a normalized policy input' '  security-policy  Normalize evidence and evaluate OPA' '  security         Run all scanners and the security gate'
 	@printf '%s\n' '  registry-config Generate local .env, harbor.yml and HTTPS certificates' '  registry-up     Verify/extract and install the pinned local Harbor distribution' '  registry-down   Stop the local Harbor distribution' '  registry-status Check Harbor availability' '  registry-login  Login using environment-provided credentials' '  registry-test   Run Harbor integration tests' '  registry-push   Run the gate, then push the approved image' '  registry-pull   Pull and verify an artifact digest' '  security-registry Run registry integration checks (requires Harbor)'
 
 test:
@@ -64,6 +64,24 @@ security-signing:
 
 test-signing:
 	@tests/security/signing/run.sh
+
+opa-install:
+	@security/policies/opa/install.sh
+
+opa-version:
+	@security/policies/opa/version.sh
+
+policy-input:
+	@security/policies/opa/normalize.sh
+
+policy-test:
+	@tests/security/policy/run.sh
+
+policy-check:
+	@security/policies/opa/evaluate.sh $(if $(POLICY_INPUT),--input $(POLICY_INPUT),)
+
+security-policy: policy-input
+	@security/policies/opa/evaluate.sh
 
 registry-config:
 	@infrastructure/registry/scripts/configure.sh $(REGISTRY_ENV)

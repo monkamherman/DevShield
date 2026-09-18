@@ -35,4 +35,4 @@ artifact.signature.identity
 artifact.signature.verified
 ```
 
-OPA/Rego is not implemented in Phase 08.
+OPA/Rego consumes this signing evidence in Phase 09; it does not replace Cosign verification.

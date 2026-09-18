@@ -35,7 +35,7 @@ DAST, WAF, runtime security and observability
 
 ## 5. Security Layers
 
-The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration and Cosign artifact signing/verification. Provenance, policy as code, DAST, WAF and runtime security remain planned for later phases.
+The implemented layers are SAST, secret detection, software composition analysis, container security, SBOM, artifact inventory, secure registry integration, Cosign artifact signing/verification and OPA policy decisions. Provenance is consumed when available; DAST, WAF and runtime security remain planned for later phases.
 
 ## 6. Target Technology Stack
 
@@ -51,7 +51,7 @@ Production artifacts should be traceable to their source commit, repository, bui
 
 ## 9. CI/CD Strategy
 
-The pipeline progressively establishes trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established the CI foundation; Phase 03 added Semgrep and Gitleaks; Phase 04 added Trivy SCA; Phase 05 added container build and image security; Phase 06 added Syft SBOM generation and artifact inventory; Phase 07 added Harbor integration; and Phase 08 added Cosign signing and verification. Because no production application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Provenance, policy enforcement, deployment and runtime stages remain future work.
+The pipeline progressively establishes trust through quality checks, tests, analysis, artifact creation, evidence generation, signing, policy verification, deployment and post-deployment validation. Phase 02 established the CI foundation; Phase 03 added Semgrep and Gitleaks; Phase 04 added Trivy SCA; Phase 05 added container build and image security; Phase 06 added Syft SBOM generation and artifact inventory; Phase 07 added Harbor integration; Phase 08 added Cosign signing and verification; and Phase 09 added OPA policy decisions. Because no production application exists yet, the application-aware Make targets report explicit limitations without pretending that linting, tests or builds are operational. Deployment and runtime stages remain future work.
 
 ## 10. Testing Strategy
 
@@ -63,4 +63,4 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 08 — Artifact Signing & Verification.** Cosign `v3.1.3` signs and verifies the exact Harbor image digest after the existing gate. Local development uses a protected key pair; trusted `main` CI signing uses GitHub OIDC keyless signing when explicitly enabled. Evidence distinguishes `SIGNED` from `VERIFIED`. Full operational validation still requires Docker, a provisioned Harbor instance and the configured CI identity. No provenance, OPA, DAST, WAF, runtime security or production deployment is complete.
+**Phase 09 — Policy as Code.** OPA `v1.20.2` evaluates normalized scanner, SBOM, registry, signature and optional provenance evidence. The versioned policy is fail-closed, environment-specific and emits decision evidence with policy/input hashes. Full operational validation still requires the pinned OPA binary and the existing Docker/Harbor/Cosign environment. No DAST, WAF, runtime security or production deployment is complete.

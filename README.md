@@ -9,7 +9,7 @@ Source → Development → CI/CD → Security evidence → Signed artifact
        → Policy verification → Deployment → Runtime protection → Observability
 ```
 
-The platform is being implemented incrementally. SAST, secret detection, dependency and container scanning, SBOM generation, artifact inventory and secure registry integration are currently implemented. Signing, provenance, policy as code, DAST, WAF and runtime security remain planned.
+The platform is being implemented incrementally. SAST, secret detection, dependency and container scanning, SBOM generation, artifact inventory, secure registry integration, signing/verification and OPA policy decisions are currently implemented. Provenance, DAST, WAF and runtime security remain planned.
 
 ## Incremental implementation
 
@@ -17,8 +17,8 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 08 — Artifact Signing & Verification.** Semgrep, Gitleaks, Trivy SCA, container security and Syft CycloneDX inventory feed a centralized fail-closed gate. Approved images can be pushed to a pinned, project-scoped Harbor registry, then signed and verified by Cosign against the exact image digest. Local signing uses a protected key pair; trusted `main` CI signing uses GitHub OIDC keyless signing when explicitly enabled. Provenance, OPA, deployment and runtime controls remain future phases.
+**Phase 09 — Policy as Code with OPA/Rego.** Semgrep, Gitleaks, Trivy SCA, container security, Syft CycloneDX inventory, Harbor and Cosign evidence are normalized and evaluated by versioned fail-closed Rego policies. Development, staging and production have explicit trust requirements. Provenance is consumed when present; deployment, DAST, WAF and runtime controls remain future phases.
 
-Use `make registry-up` for the pinned official Harbor installer model and see [registry security](docs/02-security/registry.md), [signing](docs/02-security/signing.md) and [CI signing integration](docs/04-cicd/signing-integration.md).
+Use `make registry-up` for the pinned official Harbor installer model and see [registry security](docs/02-security/registry.md), [signing](docs/02-security/signing.md), [policy as code](docs/02-security/policy-as-code.md) and [CI signing integration](docs/04-cicd/signing-integration.md).
 
 See [PROJECT_SPECIFICATION.md](PROJECT_SPECIFICATION.md) for the initial architectural specification.

@@ -56,4 +56,4 @@ The signing evidence distinguishes `SIGNED` and `VERIFIED`. A signature is not t
 
 The local public key is the trust root. If a private key is compromised, stop trusting its public key, rotate to a new key, update verification configuration, audit existing signatures and re-sign artifacts that must remain trusted. Production key management, rotation automation and revocation policy are future work.
 
-Cosign verification proves the configured authenticity relationship. It does not prove that the artifact is safe, vulnerability-free or approved for production. Phase 09 can evaluate the signature evidence with OPA/Rego before deployment.
+Cosign verification proves the configured authenticity relationship. It does not prove that the artifact is safe, vulnerability-free or approved for production. Phase 09 evaluates the signature evidence with OPA/Rego before any future deployment authorization.

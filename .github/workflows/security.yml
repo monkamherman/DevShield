@@ -184,3 +184,82 @@ jobs:
           path: reports/cosign-signing-evidence.json
           if-no-files-found: error
           retention-days: 14
+      - name: Upload Harbor digest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor-evidence-${{ github.run_id }}
+          path: reports/registry-push-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
+  policy:
+    name: OPA policy decision
+    needs: [sast, secrets, sca, container, security-gate, harbor-push]
+    if: ${{ always() && needs.security-gate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download Semgrep evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-evidence-${{ github.run_id }}
+          path: policy-evidence/semgrep
+      - name: Download secret detection evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-evidence-${{ github.run_id }}
+          path: policy-evidence/secrets
+      - name: Download SCA evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-sca-evidence-${{ github.run_id }}
+          path: policy-evidence/sca
+      - name: Download container and SBOM evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: policy-evidence/container
+      - name: Download Harbor evidence when publication ran
+        if: ${{ needs.harbor-push.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: harbor-evidence-${{ github.run_id }}
+          path: policy-evidence/harbor
+      - name: Download Cosign evidence when signing ran
+        if: ${{ needs.harbor-push.result == 'success' && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: cosign-evidence-${{ github.run_id }}
+          path: policy-evidence/signing
+      - name: Install pinned OPA
+        run: make opa-install
+      - name: Run Rego policy tests
+        run: make policy-test
+      - name: Normalize security evidence
+        env:
+          DEVSHIELD_POLICY_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+          DEVSHIELD_TRUSTED_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          DEVSHIELD_TRUSTED_REPOSITORY: ${{ vars.HARBOR_PROJECT && format('{0}/{1}', vars.HARBOR_PROJECT, vars.HARBOR_REPOSITORY) || '' }}
+          DEVSHIELD_TRUSTED_SIGNER: ${{ vars.DEVSHIELD_TRUSTED_SIGNER }}
+        run: |
+          set -euo pipefail
+          security/policies/opa/normalize.sh --environment "$DEVSHIELD_POLICY_ENVIRONMENT" --evidence-root policy-evidence --output reports/policy-input.json --trusted-registry "$DEVSHIELD_TRUSTED_REGISTRY" --trusted-repository "$DEVSHIELD_TRUSTED_REPOSITORY" --trusted-signer "$DEVSHIELD_TRUSTED_SIGNER"
+      - name: Evaluate OPA policy
+        env:
+          DEVSHIELD_POLICY_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+        run: security/policies/opa/evaluate.sh --input reports/policy-input.json --output reports/policy-decision-evidence.json --environment "$DEVSHIELD_POLICY_ENVIRONMENT"
+      - name: Upload policy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opa-policy-evidence-${{ github.run_id }}
+          path: |
+            reports/policy-input.json
+            reports/policy-decision-evidence.json
+          if-no-files-found: error
+          retention-days: 14

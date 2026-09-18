@@ -26,4 +26,4 @@ The same image is built and scanned before push. Harbor's Trivy scan is compleme
 
 Invalid credentials are a security failure, denied RBAC operations are expected denials, and an unavailable Harbor is an infrastructure failure. None is converted into PASS. Retention must keep release artifacts and their metadata; development cleanup must not remove artifacts needed to reproduce a release. Backups eventually need registry storage, Harbor database, configuration, certificates and metadata.
 
-Phase 08 attaches Cosign identity to the same image digest. Provenance, OPA and deployment authorization remain future phases.
+Phase 08 attaches Cosign identity to the same image digest, and Phase 09 evaluates that evidence with OPA. Provenance and deployment authorization remain future phases.

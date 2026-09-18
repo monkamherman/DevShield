@@ -43,4 +43,4 @@ The command runs the current gate, pushes the already-built image, resolves the 
 
 The local public key is the trust root. In CI, the trusted identity is restricted to the DevShield GitHub workflow on `main` and the Sigstore token issuer. A future production trust store must support key rotation: stop trusting the compromised/retired identity, add the replacement identity, audit existing signatures and re-sign artifacts where required. Cosign does not automatically revoke a leaked private key.
 
-Signing proves authenticity and integrity relative to the configured identity. It does not prove that an image is vulnerability-free or production-approved. Phase 09 may consume `digest`, `signature.status`, `signature.identity` and `signature.verified` with OPA/Rego.
+Signing proves authenticity and integrity relative to the configured identity. It does not prove that an image is vulnerability-free or production-approved. Phase 09 consumes the digest, signature status, signer identity and verification state through its normalized OPA input.

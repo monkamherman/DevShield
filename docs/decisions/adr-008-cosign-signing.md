@@ -27,4 +27,4 @@ Local keys are generated on demand and protected by `COSIGN_PASSWORD`; the priva
 
 ## Consequences
 
-The signing boundary is after scanning, SBOM generation and the security gate. The implementation cannot prove that an image is safe; it proves only that the exact digest was signed by and verified against the configured identity. OPA/Rego and deployment enforcement remain Phase 09 responsibilities.
+The signing boundary is after scanning, SBOM generation and the security gate. The implementation cannot prove that an image is safe; it proves only that the exact digest was signed by and verified against the configured identity. Phase 09 consumes this evidence with OPA/Rego; deployment enforcement remains future work.
