@@ -83,6 +83,8 @@ jobs:
         run: make security-container
       - name: Generate and validate SBOM
         run: make security-sbom
+      - name: Export the already-scanned image for optional Harbor publication
+        run: docker save "devshield:phase05-${GITHUB_SHA}" -o reports/container-image.tar
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,6 +95,7 @@ jobs:
             reports/image-sbom.cdx.json
             reports/artifact-inventory.json
             reports/container-build-metadata.json
+            reports/container-image.tar
           if-no-files-found: error
           retention-days: 14
 
@@ -122,3 +125,31 @@ jobs:
             echo 'A finding or scanner/tool execution failure blocks the pipeline.'
             exit 1
           fi
+  harbor-push:
+    name: Optional Harbor publication
+    needs: [security-gate, container]
+    if: ${{ vars.DEVSHIELD_HARBOR_ENABLED == 'true' && needs.security-gate.result == 'success' }}
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Download the scanned image
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: reports
+      - name: Load and publish the gated image
+        env:
+          HARBOR_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          HARBOR_PROJECT: ${{ vars.HARBOR_PROJECT }}
+          HARBOR_REPOSITORY: ${{ vars.HARBOR_REPOSITORY }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          DEVSHIELD_GATE_CONFIRMED: '1'
+          DEVSHIELD_SKIP_SECURITY_GATE: '1'
+        run: |
+          set -euo pipefail
+          docker load --input reports/container-image.tar
+          security/registry/push.sh

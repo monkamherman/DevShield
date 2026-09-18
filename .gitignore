@@ -44,3 +44,8 @@ Thumbs.db
 terraform.tfstate
 terraform.tfstate.*
 
+
+infrastructure/registry/runtime/
+infrastructure/registry/secrets/
+infrastructure/registry/.env
+infrastructure/registry/harbor.yml

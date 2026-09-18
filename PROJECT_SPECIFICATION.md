@@ -63,4 +63,6 @@ Implementation proceeds by phase: inspect, plan, implement, test, simulate failu
 
 ## 12. Current Status
 
-**Phase 06 — SBOM & Artifact Inventory.** Docker image construction, Trivy image/configuration scanning, Syft CycloneDX inventory, BuildKit digest correlation and fail-closed CI integration are established. No signing, provenance, DAST, WAF, runtime security, artifact publication or deployment implementation is complete.
+**Phase 06 — SBOM & Artifact Inventory.** Docker image construction, Trivy image/configuration scanning, Syft CycloneDX inventory, BuildKit digest correlation and fail-closed CI integration are established.
+
+**Phase 07 — Secure Registry & Artifact Repository.** Harbor `2.14.4` is the approved private registry model. Images are pushed only after the existing gate, with project RBAC, TLS-oriented local configuration, protected tags, retention guidance and explicit registry failure semantics. No signing, provenance, OPA, DAST, WAF, runtime security or production deployment is complete.

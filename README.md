@@ -17,6 +17,8 @@ DevShield is implemented phase by phase. Each phase is independently testable an
 
 ## Current status
 
-**Phase 05 — Container Security.** Semgrep, Gitleaks, Trivy SCA, container image security and CycloneDX SBOM inventory are integrated through a centralized, fail-closed security workflow with digest-correlated evidence. Signing, provenance, DAST, WAF, runtime security and deployment remain future phases.
+**Phase 07 — Secure Registry.** Semgrep, Gitleaks, Trivy SCA, container security and Syft CycloneDX inventory feed a centralized fail-closed gate. Approved images can be pushed to a pinned, project-scoped Harbor registry using `sha-<commit>` tags and digest identity. Local Harbor integration is explicit and optional; signing, provenance, OPA and deployment remain future phases.
+
+Use `make registry-up` for the pinned official Harbor installer model, then see [registry security](docs/02-security/registry.md) and [CI integration](docs/04-cicd/registry-integration.md). Harbor is not treated as cryptographic trust until Phase 08 adds Cosign.
 
 See [PROJECT_SPECIFICATION.md](PROJECT_SPECIFICATION.md) for the initial architectural specification.

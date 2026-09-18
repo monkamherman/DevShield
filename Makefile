@@ -1,7 +1,8 @@
-.PHONY: help test lint build clean security-sast security-secrets security-sca container-build security-container sbom sbom-validate artifact-inventory security-sbom security
+.PHONY: help test lint build clean security-sast security-secrets security-sca container-build security-container sbom sbom-validate artifact-inventory security-sbom registry-config registry-up registry-down registry-status registry-login registry-test registry-push registry-pull security-registry security
 
 help:
 	@printf '%s\n' 'Available targets:' '  help            Show this message' '  test            Report that tests are not configured yet' '  lint            Report that linting is not configured yet' '  build           Report that no application build is configured yet' '  clean           Report that no generated files exist' '  security-sast   Run the pinned Semgrep scan' '  security-secrets Run the pinned Gitleaks scan' '  security-sca    Run the pinned Trivy dependency scan' '  container-build Build the deterministic container image' '  security-container Build and scan the container image' '  sbom            Generate the image CycloneDX SBOM' '  sbom-validate   Validate the generated SBOM' '  artifact-inventory Generate the artifact inventory' '  security-sbom   Generate, validate and inventory the image SBOM' '  security         Run all scanners and the security gate'
+	@printf '%s\n' '  registry-config Generate local .env, harbor.yml and HTTPS certificates' '  registry-up     Verify/extract and install the pinned local Harbor distribution' '  registry-down   Stop the local Harbor distribution' '  registry-status Check Harbor availability' '  registry-login  Login using environment-provided credentials' '  registry-test   Run Harbor integration tests' '  registry-push   Run the gate, then push the approved image' '  registry-pull   Pull and verify an artifact digest' '  security-registry Run registry integration checks (requires Harbor)'
 
 test:
 	@echo 'Tests are not configured yet; no application or test framework exists.'
@@ -42,6 +43,34 @@ artifact-inventory:
 
 security-sbom:
 	@security/sbom/run.sh
+
+registry-config:
+	@infrastructure/registry/scripts/configure.sh $(REGISTRY_ENV)
+
+registry-up:
+	@infrastructure/registry/scripts/up.sh
+
+registry-down:
+	@infrastructure/registry/scripts/down.sh
+
+registry-status:
+	@infrastructure/registry/scripts/status.sh
+
+registry-login:
+	@security/registry/login.sh
+
+registry-test:
+	@tests/security/registry/failure.sh
+	@tests/security/registry/run.sh
+
+registry-push:
+	@security/registry/push.sh
+
+registry-pull:
+	@security/registry/pull.sh
+
+security-registry:
+	@tests/security/registry/run.sh
 
 security:
 	@security/run.sh
