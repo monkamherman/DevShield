@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devshield.invalid/schemas/security-event-1.0.json",
+  "title": "DevShield Security Event",
+  "type": "object",
+  "required": ["schema_version", "event_id", "timestamp", "event_type", "severity", "component", "environment", "status"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "event_id": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "event_type": {"type": "string", "minLength": 1},
+    "severity": {"enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]},
+    "component": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": true
+}
+

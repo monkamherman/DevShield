@@ -1,0 +1,2 @@
+{"timestamp":"2026-09-18T00:00:00Z","action":"ALLOW","method":"GET","path":"/health","status":200}
+{"timestamp":"2026-09-18T00:00:01Z","action":"BLOCK","rule_id":"941100","message":"XSS attack detected","method":"GET","path":"/search","status":403}

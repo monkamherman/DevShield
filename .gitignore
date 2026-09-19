@@ -22,6 +22,8 @@ tmp/
 
 # Security and generated reports
 reports/
+.trivy-cache/
+.syft-cache/
 *.sarif
 *.sbom
 *.spdx
@@ -38,7 +40,13 @@ reports/
 Thumbs.db
 
 # Local tooling state
+.local/
 .terraform/
 terraform.tfstate
 terraform.tfstate.*
 
+
+infrastructure/registry/runtime/
+infrastructure/registry/secrets/
+infrastructure/registry/.env
+infrastructure/registry/harbor.yml

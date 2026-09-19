@@ -1,0 +1,409 @@
+name: DevShield Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sast:
+    name: SAST
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Run Semgrep
+        run: make security-sast
+      - name: Upload Semgrep evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-evidence-${{ github.run_id }}
+          path: reports/semgrep*
+          if-no-files-found: error
+          retention-days: 14
+
+  secrets:
+    name: Secret detection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Run Gitleaks
+        run: make security-secrets
+      - name: Upload redacted Gitleaks evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-evidence-${{ github.run_id }}
+          path: reports/gitleaks*
+          if-no-files-found: error
+          retention-days: 14
+
+  sca:
+    name: SCA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Run Trivy SCA
+        run: make security-sca
+      - name: Upload Trivy SCA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sca-evidence-${{ github.run_id }}
+          path: reports/trivy-sca*
+          if-no-files-found: error
+          retention-days: 14
+
+  container:
+    name: Container security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build and scan container
+        run: make security-container
+      - name: Generate and validate SBOM
+        run: make security-sbom
+      - name: Export the already-scanned image for optional Harbor publication
+        run: docker save "devshield:phase05-${GITHUB_SHA}" -o reports/container-image.tar
+      - name: Upload container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: |
+            reports/trivy-container*
+            reports/image-sbom.cdx.json
+            reports/artifact-inventory.json
+            reports/container-build-metadata.json
+            reports/container-image.tar
+          if-no-files-found: error
+          retention-days: 14
+
+  security-gate:
+    name: Security gate
+    needs: [sast, secrets, sca, container]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Evaluate scanner results
+        env:
+          SAST_RESULT: ${{ needs.sast.result }}
+          SECRETS_RESULT: ${{ needs.secrets.result }}
+          SCA_RESULT: ${{ needs.sca.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+        run: |
+          set -euo pipefail
+          echo "Semgrep job result: ${SAST_RESULT}"
+          echo "Gitleaks job result: ${SECRETS_RESULT}"
+          echo "Trivy SCA job result: ${SCA_RESULT}"
+          echo "Container job result: ${CONTAINER_RESULT}"
+          if [ "$SAST_RESULT" = success ] && [ "$SECRETS_RESULT" = success ] && [ "$SCA_RESULT" = success ] && [ "$CONTAINER_RESULT" = success ]; then
+            echo 'Security gate: PASS'
+          else
+            echo 'Security gate: FAIL'
+            echo 'A finding or scanner/tool execution failure blocks the pipeline.'
+            exit 1
+          fi
+  harbor-push:
+    name: Optional Harbor publication
+    needs: [security-gate, container]
+    if: ${{ vars.DEVSHIELD_HARBOR_ENABLED == 'true' && needs.security-gate.result == 'success' }}
+    runs-on: self-hosted
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Download the scanned image
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: reports
+      - name: Load and publish the gated image
+        env:
+          HARBOR_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          HARBOR_PROJECT: ${{ vars.HARBOR_PROJECT }}
+          HARBOR_REPOSITORY: ${{ vars.HARBOR_REPOSITORY }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          DEVSHIELD_GATE_CONFIRMED: '1'
+          DEVSHIELD_SKIP_SECURITY_GATE: '1'
+        run: |
+          set -euo pipefail
+          docker load --input reports/container-image.tar
+          security/registry/push.sh
+      - name: Require CI signing for strict environments
+        if: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT == 'staging' || vars.DEVSHIELD_POLICY_ENVIRONMENT == 'production' }}
+        env:
+          COSIGN_ENABLED: ${{ vars.DEVSHIELD_COSIGN_ENABLED }}
+        run: |
+          set -euo pipefail
+          test "$COSIGN_ENABLED" = true
+      - name: Verify pinned Cosign
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: make cosign-version
+      - name: Sign and verify the Harbor digest with GitHub OIDC
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          HARBOR_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          HARBOR_PROJECT: ${{ vars.HARBOR_PROJECT }}
+          HARBOR_REPOSITORY: ${{ vars.HARBOR_REPOSITORY }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          DEVSHIELD_GATE_CONFIRMED: '1'
+          DEVSHIELD_SIGNING_MODE: keyless
+          COSIGN_CERTIFICATE_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/security.yml@refs/heads/main
+          COSIGN_CERTIFICATE_OIDC_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          reference="$(security/signing/cosign/digest.sh)"
+          security/signing/cosign/sign.sh "$reference"
+          security/signing/cosign/verify.sh "$reference"
+      - name: Generate digest-bound provenance
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: security/provenance/generate.sh
+      - name: Attest and verify digest-bound provenance
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          HARBOR_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          HARBOR_PROJECT: ${{ vars.HARBOR_PROJECT }}
+          HARBOR_REPOSITORY: ${{ vars.HARBOR_REPOSITORY }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          DEVSHIELD_GATE_CONFIRMED: '1'
+          DEVSHIELD_SIGNING_MODE: keyless
+          COSIGN_CERTIFICATE_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/security.yml@refs/heads/main
+          COSIGN_CERTIFICATE_OIDC_ISSUER: https://token.actions.githubusercontent.com
+          DEVSHIELD_EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          reference="$(security/signing/cosign/digest.sh)"
+          security/provenance/attest.sh "$reference"
+          security/provenance/verify.sh --artifact "$reference" --expected-commit "$DEVSHIELD_EXPECTED_COMMIT" --expected-sbom-digest "$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.digest || "")' reports/registry-push-evidence.json)"
+      - name: Upload signing evidence
+        if: ${{ always() && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosign-evidence-${{ github.run_id }}
+          path: reports/cosign-signing-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload provenance evidence
+        if: ${{ always() && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: provenance-evidence-${{ github.run_id }}
+          path: |
+            reports/provenance.json
+            reports/provenance-predicate.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload Harbor digest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor-evidence-${{ github.run_id }}
+          path: reports/registry-push-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
+  policy:
+    name: OPA policy decision
+    needs: [sast, secrets, sca, container, security-gate, harbor-push]
+    if: ${{ always() && needs.security-gate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download Semgrep evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-evidence-${{ github.run_id }}
+          path: policy-evidence/semgrep
+      - name: Download secret detection evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-evidence-${{ github.run_id }}
+          path: policy-evidence/secrets
+      - name: Download SCA evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-sca-evidence-${{ github.run_id }}
+          path: policy-evidence/sca
+      - name: Download container and SBOM evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-container-evidence-${{ github.run_id }}
+          path: policy-evidence/container
+      - name: Download Harbor evidence when publication ran
+        if: ${{ needs.harbor-push.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: harbor-evidence-${{ github.run_id }}
+          path: policy-evidence/harbor
+      - name: Download Cosign evidence when signing ran
+        if: ${{ needs.harbor-push.result == 'success' && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: cosign-evidence-${{ github.run_id }}
+          path: policy-evidence/signing
+      - name: Download provenance evidence when attestation ran
+        if: ${{ needs.harbor-push.result == 'success' && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: provenance-evidence-${{ github.run_id }}
+          path: policy-evidence/provenance
+      - name: Install pinned OPA
+        run: make opa-install
+      - name: Run Rego policy tests
+        run: make policy-test
+      - name: Normalize security evidence
+        env:
+          DEVSHIELD_POLICY_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+          DEVSHIELD_TRUSTED_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          DEVSHIELD_TRUSTED_REPOSITORY: ${{ vars.HARBOR_PROJECT && format('{0}/{1}', vars.HARBOR_PROJECT, vars.HARBOR_REPOSITORY) || '' }}
+          DEVSHIELD_TRUSTED_SIGNER: ${{ vars.DEVSHIELD_TRUSTED_SIGNER }}
+        run: |
+          set -euo pipefail
+          security/policies/opa/normalize.sh --environment "$DEVSHIELD_POLICY_ENVIRONMENT" --evidence-root policy-evidence --output reports/policy-input.json --trusted-registry "$DEVSHIELD_TRUSTED_REGISTRY" --trusted-repository "$DEVSHIELD_TRUSTED_REPOSITORY" --trusted-signer "$DEVSHIELD_TRUSTED_SIGNER"
+      - name: Evaluate OPA policy
+        env:
+          DEVSHIELD_POLICY_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+        run: security/policies/opa/evaluate.sh --input reports/policy-input.json --output reports/policy-decision-evidence.json --environment "$DEVSHIELD_POLICY_ENVIRONMENT"
+      - name: Upload policy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opa-policy-evidence-${{ github.run_id }}
+          path: |
+            reports/policy-input.json
+            reports/policy-decision-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
+  authorization:
+    name: Deployment authorization
+    needs: [policy]
+    if: ${{ vars.DEVSHIELD_DEPLOYMENT_ENABLED == 'true' && github.event_name == 'push' && needs.policy.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download policy evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: opa-policy-evidence-${{ github.run_id }}
+          path: reports
+      - name: Install pinned OPA
+        run: make opa-install
+      - name: Authorize the exact policy artifact
+        env:
+          DEPLOYMENT_ENVIRONMENT: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT || 'development' }}
+        run: |
+          set -euo pipefail
+          reference="$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.artifact.reference || "")' reports/policy-input.json)"
+          test -n "$reference"
+          security/deployment/authorize.sh \
+            --artifact "$reference" \
+            --environment "$DEPLOYMENT_ENVIRONMENT" \
+            --policy-input reports/policy-input.json \
+            --output reports/deployment-authorization-evidence.json
+      - name: Upload deployment authorization evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-authorization-${{ github.run_id }}
+          path: reports/deployment-authorization-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
+  dast:
+    name: OWASP ZAP baseline DAST
+    needs: [authorization]
+    if: ${{ vars.DEVSHIELD_DAST_ENABLED == 'true' && needs.authorization.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run the authorized staging target baseline scan
+        env:
+          TARGET_URL: ${{ vars.DEVSHIELD_DAST_TARGET_URL }}
+          DAST_ENVIRONMENT: ${{ vars.DEVSHIELD_DAST_ENVIRONMENT || 'staging' }}
+          DAST_ALLOWED_HOSTS: ${{ vars.DEVSHIELD_DAST_ALLOWED_HOSTS }}
+          DAST_ARTIFACT: ${{ vars.DEVSHIELD_DAST_ARTIFACT }}
+        run: |
+          set -euo pipefail
+          test -n "$TARGET_URL"
+          test -n "$DAST_ALLOWED_HOSTS"
+          make dast-run
+      - name: Upload DAST reports and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-evidence-${{ github.run_id }}
+          path: reports/dast
+          if-no-files-found: error
+          retention-days: 14
+
+  waf-validation:
+    name: Coraza CRS WAF validation
+    needs: [dast]
+    if: ${{ vars.DEVSHIELD_WAF_ENABLED == 'true' && needs.dast.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Show pinned WAF versions
+        run: make waf-version
+      - name: Validate staging WAF configuration
+        env:
+          TARGET_UPSTREAM: ${{ vars.DEVSHIELD_WAF_UPSTREAM }}
+          WAF_ENVIRONMENT: staging
+          WAF_MODE: blocking
+        run: |
+          set -euo pipefail
+          test -n "$TARGET_UPSTREAM"
+          make waf-validate
+      - name: Run WAF validation suite
+        run: make waf-test

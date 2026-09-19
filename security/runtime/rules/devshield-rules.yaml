@@ -1,0 +1,35 @@
+# DevShield custom runtime rules. Detection only: no kill, terminate or isolation action.
+- rule: DevShield Shell in Container
+  desc: A shell process was started inside a container.
+  condition: container and spawned_process and proc.name in (bash, sh, zsh, ash, fish)
+  output: "DevShield shell in container (rule=devshield_shell) container_id=%container.id container_name=%container.name image=%container.image.repository:%container.image.tag process=%proc.name command=%proc.cmdline user=%user.name"
+  priority: WARNING
+  tags: [container, process, shell, devshield]
+
+- rule: DevShield Network Tool in Container
+  desc: A network utility was started inside a container.
+  condition: container and spawned_process and proc.name in (curl, wget, nc, ncat, socat)
+  output: "DevShield network tool in container (rule=devshield_network_tool) container_id=%container.id container_name=%container.name image=%container.image.repository:%container.image.tag process=%proc.name command=%proc.cmdline user=%user.name"
+  priority: WARNING
+  tags: [container, network, devshield]
+
+- rule: DevShield Sensitive File Read in Container
+  desc: A process in a container read a sensitive host-like file.
+  condition: container and open_read and fd.name in (/etc/shadow, /etc/passwd, /root/.ssh/authorized_keys)
+  output: "DevShield sensitive file read in container (rule=devshield_sensitive_file_read) container_id=%container.id container_name=%container.name image=%container.image.repository:%container.image.tag file=%fd.name process=%proc.name command=%proc.cmdline user=%user.name"
+  priority: WARNING
+  tags: [container, filesystem, devshield]
+
+- rule: DevShield Write Below Etc in Container
+  desc: A process in a container opened a file below /etc for writing.
+  condition: container and open_write and fd.typechar='f' and fd.name startswith /etc
+  output: "DevShield write below etc in container (rule=devshield_write_etc) container_id=%container.id container_name=%container.name image=%container.image.repository:%container.image.tag file=%fd.name process=%proc.name command=%proc.cmdline user=%user.name"
+  priority: ERROR
+  tags: [container, filesystem, persistence, devshield]
+
+- rule: DevShield Execute From Temporary Directory
+  desc: A process in a container was executed from a temporary directory.
+  condition: container and spawned_process and (proc.exepath startswith /tmp/ or proc.exepath startswith /var/tmp/ or proc.exepath startswith /dev/shm/)
+  output: "DevShield process executed from temporary directory (rule=devshield_temp_execution) container_id=%container.id container_name=%container.name image=%container.image.repository:%container.image.tag executable=%proc.exepath process=%proc.name command=%proc.cmdline user=%user.name"
+  priority: ERROR
+  tags: [container, process, execution, devshield]

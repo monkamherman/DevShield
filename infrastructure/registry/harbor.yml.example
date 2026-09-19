@@ -1,0 +1,25 @@
+# Copy to the official Harbor installer directory as harbor.yml.
+# This local profile intentionally uses HTTPS and is not a production profile.
+hostname: harbor.local
+http:
+  port: 18080
+https:
+  port: 8443
+  certificate: /absolute/path/to/infrastructure/registry/secrets/server.crt
+  private_key: /absolute/path/to/infrastructure/registry/secrets/server.key
+harbor_admin_password: REPLACE_BEFORE_INSTALL
+database:
+  password: REPLACE_BEFORE_INSTALL
+  max_idle_conns: 100
+  max_open_conns: 900
+data_volume: /absolute/path/to/infrastructure/registry/runtime/data
+trivy:
+  ignore_unfixed: false
+  vuln_type: "os,library"
+  severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+log:
+  level: info
+  local:
+    rotate_count: 50
+    rotate_size: 200M
+    location: /absolute/path/to/infrastructure/registry/runtime/log

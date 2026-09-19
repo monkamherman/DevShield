@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "policy": {"version": "1.0.0", "trusted_registries": ["harbor.example.test"], "trusted_signers": ["oidc:devshield-main"]},
+  "environment": "production",
+  "artifact": {"repository": "harbor.example.test/devshield/fixture", "reference": "harbor.example.test/devshield/fixture@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+  "source": {"repository": "org/devshield", "commit": "abc123"},
+  "security": {"sast": {"status": "PASS"}, "secrets": {"status": "PASS"}, "sca": {"status": "SECURITY_FAILURE", "critical": 1, "high": 0, "unknown": 0}, "container": {"status": "PASS", "critical": 0, "high": 0, "unknown": 0}},
+  "sbom": {"present": true, "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+  "registry": {"trusted": true, "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+  "signature": {"signed": true, "verified": true, "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "signer": "oidc:devshield-main"},
+  "provenance": {"present": true, "trusted": true, "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "source_commit": "abc123"}
+}
