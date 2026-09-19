@@ -156,6 +156,13 @@ jobs:
           set -euo pipefail
           docker load --input reports/container-image.tar
           security/registry/push.sh
+      - name: Require CI signing for strict environments
+        if: ${{ vars.DEVSHIELD_POLICY_ENVIRONMENT == 'staging' || vars.DEVSHIELD_POLICY_ENVIRONMENT == 'production' }}
+        env:
+          COSIGN_ENABLED: ${{ vars.DEVSHIELD_COSIGN_ENABLED }}
+        run: |
+          set -euo pipefail
+          test "$COSIGN_ENABLED" = true
       - name: Verify pinned Cosign
         if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: make cosign-version
@@ -176,12 +183,48 @@ jobs:
           reference="$(security/signing/cosign/digest.sh)"
           security/signing/cosign/sign.sh "$reference"
           security/signing/cosign/verify.sh "$reference"
+      - name: Generate digest-bound provenance
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: security/provenance/generate.sh
+      - name: Attest and verify digest-bound provenance
+        if: ${{ vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          HARBOR_REGISTRY: ${{ vars.HARBOR_REGISTRY }}
+          HARBOR_PROJECT: ${{ vars.HARBOR_PROJECT }}
+          HARBOR_REPOSITORY: ${{ vars.HARBOR_REPOSITORY }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          DEVSHIELD_GATE_CONFIRMED: '1'
+          DEVSHIELD_SIGNING_MODE: keyless
+          COSIGN_CERTIFICATE_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/security.yml@refs/heads/main
+          COSIGN_CERTIFICATE_OIDC_ISSUER: https://token.actions.githubusercontent.com
+          DEVSHIELD_EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          reference="$(security/signing/cosign/digest.sh)"
+          security/provenance/attest.sh "$reference"
+          security/provenance/verify.sh --artifact "$reference" --expected-commit "$DEVSHIELD_EXPECTED_COMMIT" --expected-sbom-digest "$(node -e 'const x=require(process.argv[1]); process.stdout.write(x.digest || "")' reports/registry-push-evidence.json)"
       - name: Upload signing evidence
         if: ${{ always() && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@v4
         with:
           name: cosign-evidence-${{ github.run_id }}
           path: reports/cosign-signing-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload provenance evidence
+        if: ${{ always() && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: provenance-evidence-${{ github.run_id }}
+          path: |
+            reports/provenance.json
+            reports/provenance-predicate.json
           if-no-files-found: error
           retention-days: 14
       - name: Upload Harbor digest evidence
@@ -236,6 +279,12 @@ jobs:
         with:
           name: cosign-evidence-${{ github.run_id }}
           path: policy-evidence/signing
+      - name: Download provenance evidence when attestation ran
+        if: ${{ needs.harbor-push.result == 'success' && vars.DEVSHIELD_COSIGN_ENABLED == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: provenance-evidence-${{ github.run_id }}
+          path: policy-evidence/provenance
       - name: Install pinned OPA
         run: make opa-install
       - name: Run Rego policy tests

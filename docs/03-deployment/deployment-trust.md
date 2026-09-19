@@ -4,6 +4,22 @@
 
 DevShield has no Kubernetes, Helm, GitOps controller or application deployment executor yet. Phase 10 therefore implements a deployment authorization contract rather than introducing a runtime platform. The contract can later be consumed by CI/CD, a Docker wrapper, GitOps or an admission controller.
 
+## Architecture B: CI-signed artifact, VPS verification only
+
+Production signing is performed only by the GitHub Actions workflow using the
+existing keyless Cosign configuration. The workflow signs the exact Harbor
+digest, verifies it, generates provenance from the real build/SBOM/registry
+evidence, attaches that provenance to the same digest and verifies the
+attestation. The VPS receives no Cosign private key, password, GitHub token or
+OIDC token.
+
+On the VPS, `security/signing/cosign/verify.sh` verifies the signature and
+`security/provenance/verify.sh` verifies the digest-bound in-toto attestation
+using the public certificate identity and issuer. The resulting
+`reports/provenance.json` is then included in the OPA input. `deploy.sh` is
+allowed to run only after the exact artifact has a verified signature, verified
+provenance and an OPA `ALLOW` authorization.
+
 ## Decision flow
 
 ```text

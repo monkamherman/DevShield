@@ -63,10 +63,15 @@ registry_reachable() {
 
 registry_login() {
   : "${HARBOR_REGISTRY:?Set HARBOR_REGISTRY}"
-  : "${HARBOR_USERNAME:?Set HARBOR_USERNAME}"
-  : "${HARBOR_PASSWORD:?Set HARBOR_PASSWORD}"
   command -v curl >/dev/null || { echo 'TOOL_FAILURE: curl is required to classify Harbor availability' >&2; return 2; }
   registry_reachable
+  if [[ "${DEVSHIELD_VERIFY_ONLY:-0}" == 1 ]]; then
+    local docker_config="${DOCKER_CONFIG:-${HOME:-}/.docker}/config.json"
+    [[ -s "$docker_config" ]] || { echo 'AUTHENTICATION_FAILURE: no existing Docker pull credentials are available for verification' >&2; return 1; }
+    return 0
+  fi
+  : "${HARBOR_USERNAME:?Set HARBOR_USERNAME}"
+  : "${HARBOR_PASSWORD:?Set HARBOR_PASSWORD}"
   if ! printf '%s\n' "$HARBOR_PASSWORD" | docker login "$HARBOR_REGISTRY" --username "$HARBOR_USERNAME" --password-stdin >/dev/null 2>&1; then
     echo 'AUTHENTICATION_FAILURE: Harbor authentication failed' >&2
     return 1

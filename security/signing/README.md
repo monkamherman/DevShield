@@ -18,6 +18,32 @@ The private key is ignored and must never be committed. The public key is also k
 
 CI uses keyless signing only for an explicitly enabled `main` push after Harbor publication. GitHub Actions provides an OIDC token to Cosign, which obtains a Fulcio certificate and records transparency evidence in Rekor. Verification requires both the expected certificate identity and the Sigstore OIDC issuer. Pull requests never create trusted signatures.
 
+## Architecture B: CI signing, VPS verification
+
+The production trust boundary is GitHub Actions. The CI workflow runs the
+Security Gate, publishes the already-scanned image, resolves the Harbor digest,
+signs that exact digest with keyless Cosign, and verifies the signature. It then
+generates an in-toto provenance predicate from the real BuildKit, SBOM and
+Harbor evidence, attaches it to the same digest and verifies the attestation.
+
+The VPS receives only the immutable image reference, the public keyless trust
+parameters (certificate identity and OIDC issuer), and the resulting public
+evidence. It never receives `COSIGN_PRIVATE_KEY`, `COSIGN_PASSWORD`, a GitHub
+token or an OIDC token. `security/signing/cosign/verify.sh` and
+`security/provenance/verify.sh` use verification-only mode and may reuse an
+existing Docker pull authentication configuration without requesting signing
+credentials.
+
+The VPS path is therefore:
+
+```text
+pull digest → verify Cosign signature → verify provenance attestation → OPA → deploy
+```
+
+Production and staging remain fail-closed when signing or provenance is absent.
+The `cosign-keygen` target remains a local-development utility and is not part
+of the production CI path.
+
 ## Flow
 
 ```text

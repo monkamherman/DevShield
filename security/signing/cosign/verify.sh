@@ -6,6 +6,7 @@ reference="${1:-$(security/signing/cosign/digest.sh)}"
 validate_digest_reference "$reference"
 validate_approved_registry "$reference"
 require_cosign_version
+export DEVSHIELD_VERIFY_ONLY=1
 registry_login
 mode="${DEVSHIELD_SIGNING_MODE:-key}"
 signer=''
