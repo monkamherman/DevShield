@@ -30,6 +30,7 @@ esac
 set +e
 docker run --rm \
   --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
   -v "$repo_root:/src" \
   -w /src \
   semgrep/semgrep:1.172.0 \

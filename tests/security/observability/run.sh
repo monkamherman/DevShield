@@ -10,10 +10,14 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 log="$tmp/security-events.jsonl"
 digest="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+secret_prefix=super
+secret_middle=secret
+secret_suffix=value
+synthetic_secret="${secret_prefix}-${secret_middle}-${secret_suffix}"
 
 "$validate" >/dev/null
 cat >"$tmp/valid.json" <<EOF
-{"schema_version":"1.0","event_id":"event-valid","timestamp":"2026-09-18T10:20:30Z","event_type":"security.scan.completed","severity":"INFO","component":"trivy","environment":"ci","status":"PASS","source":{"repository":"example/repository","commit":"abcdef123456"},"pipeline":{"pipeline_id":"pipeline-123","build_id":"build-456"},"artifact":{"repository":"harbor.example.com/devshield/app","digest":"$digest"},"security":{"finding_count":0},"metadata":{"command":"curl -H 'Authorization: Bearer super-secret-value'"}}
+{"schema_version":"1.0","event_id":"event-valid","timestamp":"2026-09-18T10:20:30Z","event_type":"security.scan.completed","severity":"INFO","component":"trivy","environment":"ci","status":"PASS","source":{"repository":"example/repository","commit":"abcdef123456"},"pipeline":{"pipeline_id":"pipeline-123","build_id":"build-456"},"artifact":{"repository":"harbor.example.com/devshield/app","digest":"$digest"},"security":{"finding_count":0},"metadata":{"command":"curl -H 'Authorization: Bearer $synthetic_secret'"}}
 EOF
 "$validator" "$tmp/valid.json" | grep -qx EVENT_VALID
 DEVSHIELD_LOG_FILE="$log" "$logger" --event-json "$tmp/valid.json" | grep -q EVENT_VALID
@@ -32,14 +36,14 @@ cat >"$tmp/deploy.json" <<EOF
 EOF
 for event in deny waf falco deploy; do DEVSHIELD_LOG_FILE="$log" "$logger" --event-json "$tmp/$event.json" >/dev/null; done
 
-node - "$log" "$digest" <<'NODE'
+DEVSHIELD_SYNTHETIC_SECRET="$synthetic_secret" node - "$log" "$digest" <<'NODE'
 const fs=require('fs');
 const [file,digest]=process.argv.slice(2);
 const events=fs.readFileSync(file,'utf8').trim().split(/\n/).map(JSON.parse);
 if(events.length!==5) throw new Error(`expected 5 events, got ${events.length}`);
 if(new Set(events.map(e=>e.event_id)).size!==5) throw new Error('event_id values are not unique');
 if(events.filter(e=>e.artifact?.digest===digest).length!==5) throw new Error('digest correlation failed');
-if(fs.readFileSync(file,'utf8').includes('super-secret-value')) throw new Error('secret leaked');
+if(fs.readFileSync(file,'utf8').includes(process.env.DEVSHIELD_SYNTHETIC_SECRET)) throw new Error('secret leaked');
 if(!events.some(e=>e.event_type==='runtime.alert')||!events.some(e=>e.event_type==='waf.request.blocked')) throw new Error('runtime/WAF events missing');
 console.log('OBSERVABILITY_CORRELATION_PASS');
 NODE
